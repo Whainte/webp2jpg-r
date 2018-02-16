@@ -1,7 +1,5 @@
 webp2jpg-r
-this program converts ALL .webp files in the current folder AND IT'S ALL SUBFOLDERS into .jpg format.
-the current version does NOT detect .webp files that are not webp images. be causious.
-the program doesnt receive any parameters from the shell and is currently for webp->jpg only.
+This is an utility (packed up version of ImageMagick) for converting webp into jpeg
 
 This package includes ImageMagick, by ImageMagick Studio LLC
     which doesnt generate a proper functional executable on debug.
