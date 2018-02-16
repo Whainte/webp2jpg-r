@@ -1,4 +1,4 @@
-# webp2jpg-r
+# webp2jpg
 A tool for converting webp images into jpg format
 
 Feed the executable with the file paths you wish to convert
