@@ -5,11 +5,12 @@
 #include<filesystem>
 #include<iostream>
 #include<regex>
-#include<queue>
+#include<stack>
 #include<string>
+#include "func_def.h"
 
 using std::string;
-using std::queue;
+using std::stack;
 using std::cin;
 using std::cout;
 using std::endl;
@@ -19,64 +20,122 @@ using fs::current_path;
 using fs::path;
 using fs::directory_entry;
 using fs::directory_iterator;
+using fs::exists;
+using fs::is_regular_file;
+using fs::is_symlink;
+using fs::absolute;
+using fs::canonical;
 //Possible alternative
 //using fs::recursive_directory_iterator;
 
 //This Program utilizes ImageMagick++ and the ImageMagick libraries for conversion
 //This Program utilizes <filesystem> and must be built with C++
 
+
 int main(int argc, char** argv)
 {
-	InitializeMagick(*argv);
-	path p = current_path();
-	string f;
-	char confirm;
-
-	//Confirm
-
-	cout << "All webp files under the directory convert to jpeg format:";
-	cout << endl << p.u8string() << endl;
-	while (1) {
-		cout << "Please confirm(confirm with y)";
-		confirm = getchar();
-		if (confirm != 'y' && confirm != '\n')return 1;
-		if (confirm == 'y')break;
+	if (argc == 1) {
+		showHelp();
+		return 1;
 	}
-	getchar();
-
-	queue<path> tasks;
-	tasks.push(p);
-	directory_iterator end;
-	Image i;
 	try {
-		while (!tasks.empty()) {
-			p = tasks.front();
-			tasks.pop();
-			if (fs::is_directory(p)) {
-				for (directory_iterator iter(p); iter != end; iter++) {
-					tasks.push(iter->path());
+		InitializeMagick(*argv);
+		path p;
+		bool rec = false;
+		for (int i = 1; i < argc;i++) {
+			if (string(argv[i]) == "-h") {
+				showHelp();
+				return 0;
+			}
+			else if (string(argv[i]) == "-r") {
+				if (rec) {
+					cout << "Error: webp2jpg .. -r <path> ..\n";
+					return 2;
 				}
+				else {
+					rec = true;
+				}
+			}
+			else if (rec) {
+				p = canonical(path(argv[i]));
+				if (!exists(p)) {
+					cout << "Warning: " << p.u8string() << " does not exist.\n";
+				}
+				else {
+					conv_recursive(p);
+				}
+				rec = false;
 			}
 			else {
-				f = p.u8string();
-				if (std::regex_match(f, std::regex("(.*)(.webp)"))) {
-					cout << "Converting:" << f << endl;//Comment this if you seek performance
-					i.read(f);
-					//cout<<"    " << f << " read, converting format..." << endl;
-					i.magick("JPEG");
-					f = f.replace(f.length() - 4, f.length(), "jpg");
-					//cout << "    Converion success, writing to disk..." << endl;
-					i.write(f);
-					//cout << "Finished" << endl;
+				p = canonical(path(argv[i]));
+				if (!(is_regular_file(p) || is_symlink(p))) {
+					cout << "Warning: " << p.u8string() << " is not a valid file.\n";
+				}
+				else {
+					conv(p);
 				}
 			}
-
 		}
+		cout << "Done" << endl;
 	}
 	catch (Exception e) {
 		cout << e.what();
+		return 3;
 	}
-	cout << "Done" << endl;
 	return 0;
 }
 
+inline void showHelp() {
+	cout << "webp2jpg -- Utility for converting WEBP files into JPEG format.\nUsage:\n webp2jpg -h\n webp2jpg [-r] <filepath> ..\nOptions:\n -h: show help\n -r: recursively traverse the following filepath\nExamples:\n webp2jpg -r . ./a.webp -r ./path\n";
+	return;
+}
+
+void conv(path p) {
+	Image i;
+	if (p.extension().u8string() == ".webp") {
+		cout << "Converting:" << p.u8string() << endl;//Comment this if you seek performance
+		i.read(p.u8string());
+		//cout<<"    " << f << " read, converting format..." << endl;
+		i.magick("JPEG");
+		p.replace_extension(".jpg");
+		//cout << "    Converion success, writing to disk..." << endl;
+		i.write(p.u8string());
+		//cout << "Finished" << endl;
+	}
+	else {
+		cout << "Warning: " << p.u8string() << " is not a .webp file, skipping.\n";
+	}
+}
+
+void conv_recursive(path pa) {//TODO: add depth check
+	path p;
+	char confirm;
+	cout << "Traversing:";
+	cout << pa.u8string() << endl;
+	stack<path> tasks;
+	tasks.push(pa);
+	directory_iterator end;
+	Image i;
+	while (!tasks.empty()) {
+		p = tasks.top();
+		tasks.pop();
+		if (fs::is_directory(p)) {
+			for (directory_iterator iter(p); iter != end; iter++) {
+				tasks.push(iter->path());
+			}
+		}
+		else {
+			if (p.extension().u8string() == ".webp") {
+				cout << "Converting:" << p.u8string() << endl;//Comment this if you seek performance
+				i.read(p.u8string());
+				//cout<<"    " << f << " read, converting format..." << endl;
+				i.magick("JPEG");
+				p.replace_extension(".jpg");
+				//cout << "    Converion success, writing to disk..." << endl;
+				i.write(p.u8string());
+				//cout << "Finished" << endl;
+			}
+		}
+	}
+	cout << "Traversal complete: " << pa.u8string() << endl;
+}
