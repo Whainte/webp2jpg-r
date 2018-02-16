@@ -32,7 +32,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="webp2jpg-r.cpp">
+    <ClCompile Include="webp2jpg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
